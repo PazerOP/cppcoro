@@ -173,6 +173,11 @@ namespace cppcoro
 
 			};
 		}
+
+		using dword_t = win32::dword_t;
+        using handle_t = win32::handle_t;
+		using sock_buf = win32::wsabuf;
+        using safe_handle = win32::safe_handle;
 	}
 }
 

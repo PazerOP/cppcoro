@@ -11,8 +11,6 @@
 #include <cppcoro/file_buffering_mode.hpp>
 #include <cppcoro/file_open_mode.hpp>
 
-#include <experimental/filesystem>
-
 namespace cppcoro
 {
 	class read_write_file : public readable_file, public writable_file
@@ -49,17 +47,14 @@ namespace cppcoro
 		[[nodiscard]]
 		static read_write_file open(
 			io_service& ioService,
-			const std::experimental::filesystem::path& path,
+			const stdfs::path& path,
 			file_open_mode openMode = file_open_mode::create_or_open,
 			file_share_mode shareMode = file_share_mode::none,
 			file_buffering_mode bufferingMode = file_buffering_mode::default_);
 
 	protected:
 
-#if CPPCORO_OS_WINNT
-		read_write_file(detail::win32::safe_handle&& fileHandle) noexcept;
-#endif
-
+		read_write_file(detail::safe_handle&& fileHandle) noexcept;
 	};
 }
 

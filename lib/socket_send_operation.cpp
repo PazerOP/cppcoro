@@ -7,13 +7,11 @@
 #include <cppcoro/net/socket.hpp>
 
 #if CPPCORO_OS_WINNT
-# include <WinSock2.h>
-# include <WS2tcpip.h>
-# include <MSWSock.h>
-# include <Windows.h>
+#include <WinSock2.h>
+#include <WS2tcpip.h>
 
 bool cppcoro::net::socket_send_operation_impl::try_start(
-	cppcoro::detail::win32_overlapped_operation_base& operation) noexcept
+	cppcoro::detail::io_operation_base& operation) noexcept
 {
 	// Need to read this flag before starting the operation, otherwise
 	// it may be possible that the operation will complete immediately
@@ -54,11 +52,25 @@ bool cppcoro::net::socket_send_operation_impl::try_start(
 }
 
 void cppcoro::net::socket_send_operation_impl::cancel(
-	cppcoro::detail::win32_overlapped_operation_base& operation) noexcept
+	cppcoro::detail::io_operation_base& operation) noexcept
 {
 	(void)::CancelIoEx(
 		reinterpret_cast<HANDLE>(m_socket.native_handle()),
 		operation.get_overlapped());
+}
+
+#else
+
+bool cppcoro::net::socket_send_operation_impl::try_start(
+    cppcoro::detail::io_operation_base& operation) noexcept
+{
+    return operation.try_start_send(m_socket.native_handle(), m_buffer.buffer, m_buffer.size);
+}
+
+void cppcoro::net::socket_send_operation_impl::cancel(
+    cppcoro::detail::io_operation_base& operation) noexcept
+{
+    operation.cancel_io();
 }
 
 #endif

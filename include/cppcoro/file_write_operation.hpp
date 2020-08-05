@@ -11,89 +11,100 @@
 
 #include <atomic>
 #include <optional>
-#include <experimental/coroutine>
+#include <cppcoro/stdcoro.hpp>
 
 #if CPPCORO_OS_WINNT
+
 # include <cppcoro/detail/win32.hpp>
 # include <cppcoro/detail/win32_overlapped_operation.hpp>
 
-namespace cppcoro
-{
-	class file_write_operation_impl
-	{
-	public:
+#elif CPPCORO_OS_LINUX
 
-		file_write_operation_impl(
-			detail::win32::handle_t fileHandle,
-			const void* buffer,
-			std::size_t byteCount) noexcept
-			: m_fileHandle(fileHandle)
-			, m_buffer(buffer)
-			, m_byteCount(byteCount)
-		{}
+# include <cppcoro/detail/linux_uring_operation.hpp>
 
-		bool try_start(cppcoro::detail::win32_overlapped_operation_base& operation) noexcept;
-		void cancel(cppcoro::detail::win32_overlapped_operation_base& operation) noexcept;
+#endif
 
-	private:
+namespace cppcoro {
+    class file_write_operation_impl {
+    public:
 
-		detail::win32::handle_t m_fileHandle;
-		const void* m_buffer;
-		std::size_t m_byteCount;
+        file_write_operation_impl(
+                detail::handle_t fileHandle,
+                const void *buffer,
+                std::size_t byteCount) noexcept
+                : m_fileHandle(fileHandle), m_buffer(buffer), m_byteCount(byteCount) {}
 
-	};
+        bool try_start(cppcoro::detail::io_operation_base &operation) noexcept;
 
-	class file_write_operation
-		: public cppcoro::detail::win32_overlapped_operation<file_write_operation>
-	{
-	public:
+        void cancel(cppcoro::detail::io_operation_base &operation) noexcept;
 
-		file_write_operation(
-			detail::win32::handle_t fileHandle,
-			std::uint64_t fileOffset,
-			const void* buffer,
-			std::size_t byteCount) noexcept
-			: cppcoro::detail::win32_overlapped_operation<file_write_operation>(fileOffset)
-			, m_impl(fileHandle, buffer, byteCount)
-		{}
+    private:
 
-	private:
+        detail::handle_t m_fileHandle;
+        const void *m_buffer;
+        std::size_t m_byteCount;
 
-		friend class cppcoro::detail::win32_overlapped_operation<file_write_operation>;
+    };
 
-		bool try_start() noexcept { return m_impl.try_start(*this); }
+    class file_write_operation
+            : public cppcoro::detail::io_operation<file_write_operation> {
+    public:
 
-		file_write_operation_impl m_impl;
+        file_write_operation(
+#if CPPCORO_OS_LINUX
+                io_service &ioService,
+#endif
+                detail::handle_t fileHandle,
+                std::uint64_t fileOffset,
+                const void *buffer,
+                std::size_t byteCount) noexcept
+                : cppcoro::detail::io_operation<file_write_operation>(
+#if CPPCORO_OS_LINUX
+                ioService,
+#endif
+                fileOffset),
+                  m_impl(fileHandle, buffer, byteCount) {}
 
-	};
+    private:
 
-	class file_write_operation_cancellable
-		: public cppcoro::detail::win32_overlapped_operation_cancellable<file_write_operation_cancellable>
-	{
-	public:
+        friend cppcoro::detail::io_operation<file_write_operation>;
 
-		file_write_operation_cancellable(
-			detail::win32::handle_t fileHandle,
-			std::uint64_t fileOffset,
-			const void* buffer,
-			std::size_t byteCount,
-			cancellation_token&& ct) noexcept
-			: cppcoro::detail::win32_overlapped_operation_cancellable<file_write_operation_cancellable>(fileOffset, std::move(ct))
-			, m_impl(fileHandle, buffer, byteCount)
-		{}
+        bool try_start() noexcept { return m_impl.try_start(*this); }
 
-	private:
+        file_write_operation_impl m_impl;
 
-		friend class cppcoro::detail::win32_overlapped_operation_cancellable<file_write_operation_cancellable>;
+    };
 
-		bool try_start() noexcept { return m_impl.try_start(*this); }
-		void cancel() noexcept { m_impl.cancel(*this); }
+    class file_write_operation_cancellable
+            : public cppcoro::detail::io_operation_cancellable<file_write_operation_cancellable> {
+    public:
 
-		file_write_operation_impl m_impl;
+        file_write_operation_cancellable(
+#if CPPCORO_OS_LINUX
+                io_service &ioService,
+#endif
+                detail::handle_t fileHandle,
+                std::uint64_t fileOffset,
+                const void *buffer,
+                std::size_t byteCount,
+                cancellation_token &&ct) noexcept
+                : cppcoro::detail::io_operation_cancellable<file_write_operation_cancellable>(
+#if CPPCORO_OS_LINUX
+                ioService,
+#endif
+                fileOffset, std::move(ct)), m_impl(fileHandle, buffer, byteCount) {}
 
-	};
+    private:
+
+        friend cppcoro::detail::io_operation_cancellable<file_write_operation_cancellable>;
+
+        bool try_start() noexcept { return m_impl.try_start(*this); }
+
+        void cancel() noexcept { m_impl.cancel(*this); }
+
+        file_write_operation_impl m_impl;
+
+    };
 }
-
-#endif // CPPCORO_OS_WINNT
 
 #endif

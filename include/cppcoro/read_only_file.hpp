@@ -9,8 +9,6 @@
 #include <cppcoro/file_share_mode.hpp>
 #include <cppcoro/file_buffering_mode.hpp>
 
-#include <experimental/filesystem>
-
 namespace cppcoro
 {
 	class read_only_file : public readable_file
@@ -43,16 +41,13 @@ namespace cppcoro
 		[[nodiscard]]
 		static read_only_file open(
 			io_service& ioService,
-			const std::experimental::filesystem::path& path,
+			const stdfs::path& path,
 			file_share_mode shareMode = file_share_mode::read,
 			file_buffering_mode bufferingMode = file_buffering_mode::default_);
 
 	protected:
 
-#if CPPCORO_OS_WINNT
-		read_only_file(detail::win32::safe_handle&& fileHandle) noexcept;
-#endif
-
+		read_only_file(detail::safe_handle&& fileHandle) noexcept;
 	};
 }
 
