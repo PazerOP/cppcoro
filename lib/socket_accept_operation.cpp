@@ -16,6 +16,8 @@
 # include <MSWSock.h>
 # include <Windows.h>
 
+#pragma comment( lib, "Mswsock.lib" )
+
 // TODO: Eliminate duplication of implementation between socket_accept_operation
 // and socket_accept_operation_cancellable.
 
