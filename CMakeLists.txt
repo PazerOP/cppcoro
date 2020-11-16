@@ -136,31 +136,39 @@ set(${PROJECT_NAME}_SOURCES
 
 if(WIN32)
   list(APPEND ${PROJECT_NAME}_SOURCES
-    # headers
+	# headers
 
-    # sources
-    lib/win32.cpp
-    )
+	# sources
+	lib/win32.cpp
+	)
 
   list(APPEND ${PROJECT_NAME}_SOURCES
-    # headers
-    include/cppcoro/detail/win32.hpp
-    include/cppcoro/detail/win32_overlapped_operation.hpp
-    )
+	# headers
+	include/cppcoro/detail/win32.hpp
+	include/cppcoro/detail/win32_overlapped_operation.hpp
+	)
 else()
   list(APPEND ${PROJECT_NAME}_SOURCES
-    # headers
-    include/cppcoro/detail/linux.hpp
-    # sources
-    lib/linux.cpp
-    )
+	# headers
+	include/cppcoro/detail/linux.hpp
+	# sources
+	lib/linux.cpp
+	)
 endif()
 
 add_library(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 
 if(WIN32)
-  set(CMAKE_REQUIRED_FLAGS /std:c++latest /await)
+	target_compile_options(${PROJECT_NAME} PUBLIC /std:c++latest)
+
+	if (MSVC_VERSION LESS 1928)
+		message("MSVC_VERSION = ${MSVC_VERSION}, adding /await")
+		target_compile_options(${PROJECT_NAME} PUBLIC
+			/await           # coroutine support
+		)
+	endif()
+
   target_link_libraries(${PROJECT_NAME} PUBLIC ws2_32 Synchronization)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
   set(CMAKE_REQUIRED_FLAGS -fcoroutines)
@@ -188,14 +196,14 @@ message(STATUS "HAS_STD_EXPERIMENTAL_FILESYSTEM_HEADER: ${HAS_STD_EXPERIMENTAL_F
 
 if(HAS_STD_COROUTINE_HEADER)
   target_compile_options(${PROJECT_NAME} PUBLIC
-    -DHAS_STD_COROUTINE_HEADER=${HAS_STD_COROUTINE_HEADER}
-    )
+	-DHAS_STD_COROUTINE_HEADER=${HAS_STD_COROUTINE_HEADER}
+	)
 endif()
 
 if(HAS_STD_FILESYSTEM_HEADER)
   target_compile_options(${PROJECT_NAME} PUBLIC
-    -DHAS_STD_FILESYSTEM_HEADER=${HAS_STD_FILESYSTEM_HEADER}
-    )
+	-DHAS_STD_FILESYSTEM_HEADER=${HAS_STD_FILESYSTEM_HEADER}
+	)
 endif()
 
 add_library(cppcoro::coro ALIAS ${PROJECT_NAME})
